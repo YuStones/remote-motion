@@ -10,7 +10,7 @@
 #include <string.h>
 
 //Declare button
-const int buttonPin = 23;//D23
+const int buttonPin = 23; //D23
 int buttonState;
 
 //Declare sensor
@@ -63,9 +63,9 @@ int LED_colour; //0 = none, 1 = red, 2 = green, 3 = blue, 4 = yellow, 5 = white
 //LED colour function
 void LED(bool r, bool g, bool b){
   if(r == true){
-    digitalWrite(redPin, HIGH);
+    digitalWrite(redPin, HIGH); //Turn on red colour
   }else{
-    digitalWrite(redPin, LOW);
+    digitalWrite(redPin, LOW); //Turn off red colour
   }
 
   if(g == true){
@@ -83,13 +83,13 @@ void LED(bool r, bool g, bool b){
 
 //Calibraton function
 void calibrate(){
-  //Sensor events
+  //Sensor events handler
   sensors_event_t a, g, temp;
   mpu.getEvent(&a, &g, &temp);
 
   int i = 1;
-  while (cal){
-    LED(true, true, true);
+  while (cal){ //While in calibration mode
+    LED(true, true, true); //white light
     //Prompt once
     if (i == 1){
       Serial.println("Place on level surface and press button to calibrate");
@@ -99,12 +99,13 @@ void calibrate(){
     
     //Capture when pressed
     buttonState = digitalRead(buttonPin);
-    if (buttonState == HIGH){
+    if (buttonState == HIGH){ //Store sensor data
       cal_x = a.acceleration.x;
       cal_y = a.acceleration.y;
       cal_z = a.acceleration.z;
     } else{
-      if (cal_x || cal_y || cal_z){
+      if (cal_x || cal_y || cal_z){ //If calibration variable exist value
+        //Feedback calibrated values
         Serial.println("\nCalibration success");
         Serial.print("Calibrated acceleration X: ");
         Serial.print(cal_x);
@@ -113,7 +114,7 @@ void calibrate(){
         Serial.print(", Z: ");
         Serial.print(cal_z);
         Serial.println(" m/s^2 \n");
-        cal = false;
+        cal = false; //Disable calibration mode
       }else{
         Serial.print(".");
         delay(100);
@@ -127,14 +128,14 @@ void OnDataSent(const uint8_t *mac, esp_now_send_status_t status) {
   Serial.print("Last packet send status: ");
   if(status == ESP_NOW_SEND_SUCCESS){
     Serial.println("delivery success");
-    checkpoint = current_time;
-    LED_colour = 0;
-    duration = 1000; 
+    checkpoint = current_time; //Reset checkpoint
+    LED_colour = 0; //No light
+    duration = 1000;  //Start timer
   } else{
     Serial.println("delivery failed");
-    checkpoint = current_time;
-    LED_colour = 4;
-    duration = 10000; 
+    checkpoint = current_time; //Reset checkpoint
+    LED_colour = 4; //Yellow light
+    duration = 10000;  //Start timer
   }
   Serial.println();
 }
@@ -146,21 +147,21 @@ void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len){
   if (r.err == true) {
     Serial.println("Yes");
     checkpoint = current_time;
-    LED_colour = 4;
+    LED_colour = 4; //Yellow light
     duration = 10000; 
   }
   else if (r.err == false && r.win == true){
     Serial.println("No");
     Serial.println("Win");
     checkpoint = current_time;
-    LED_colour = 3;
+    LED_colour = 3; //Blue light
     duration = 7500; 
   }
   else if (r.err == false && r.win == false){
     Serial.println("No");
     Serial.println("Lose");
     checkpoint = current_time;
-    LED_colour = 1;
+    LED_colour = 1; //Red light
     duration = 7500; 
   }
   Serial.println();
@@ -171,7 +172,7 @@ void setup() {
   Serial.begin(115200);
 
   //Register identifier
-  strcpy(acceleration.iden, (WiFi.macAddress()).c_str());
+  strcpy(acceleration.iden, (WiFi.macAddress()).c_str()); //Copy MAC address to identifier
   Serial.println(acceleration.iden);
 
   //Initialize sensor
@@ -187,9 +188,9 @@ void setup() {
   //Setup sensor range
   mpu.setAccelerometerRange(MPU6050_RANGE_16_G);
   Serial.println("Accelerometer range set to: ");
-  switch (mpu.getAccelerometerRange()){
+  switch (mpu.getAccelerometerRange()){ //Set sensor sensitivity
     case MPU6050_RANGE_2_G:
-      Serial.print("+-2G \n");
+      Serial.print("+-2G \n"); 
       break;
     case MPU6050_RANGE_4_G:
       Serial.print("+-4G \n");
@@ -229,21 +230,23 @@ void setup() {
   }
 
   Serial.println("");
+  //Declare pin as I/O
   pinMode(buttonPin, INPUT);
   pinMode(redPin, OUTPUT);
   pinMode(greenPin, OUTPUT);
   pinMode(bluePin, OUTPUT);
-  cal = true;
+  cal = true; //Enable calibration mode
 }
 
 void loop() {
+  //Update time for every loop
   current_time = millis();
 
   //Sensor events
   sensors_event_t a, g, temp;
   mpu.getEvent(&a, &g, &temp);
 
-  //Calibration
+  //Check for calibration
   calibrate();
   
   //Print upon pressing
@@ -251,12 +254,12 @@ void loop() {
   float temp_x;
   float temp_y;
   float temp_z;
-  if (buttonState == HIGH) {
+  if (buttonState == HIGH) { //If button is pressed
     //Stores maximum acceleration when pressing
     temp_x = abs(a.acceleration.x - cal_x);
     temp_y = abs(a.acceleration.y - cal_y);
     temp_z = abs(a.acceleration.z - cal_z);
-    if (temp_x > accel_x){
+    if (temp_x > accel_x){ //Only record maximum values
       accel_x = temp_x;
     }
 
@@ -267,7 +270,7 @@ void loop() {
     if (temp_z > accel_z){
       accel_z = temp_z;
     }
-  } else {
+  } else { //If button is released
     //Send data once
     if (accel_x || accel_y || accel_z){
       Serial.print("Acceleration X: ");
@@ -301,7 +304,7 @@ void loop() {
   }
 
   //LED colour handler
-  if(current_time - checkpoint <= duration){
+  if(current_time - checkpoint <= duration){ //If there is existing LED timer
     switch (LED_colour){
       case 0: LED(false, false, false); break; //none
       case 1: LED(true, false, false); break; //red
@@ -311,6 +314,6 @@ void loop() {
       case 5: LED(true, true, true); break; //white
     }
   }else{
-    LED(false, true, false);
+    LED(false, true, false); //idle_green
   }
 }
